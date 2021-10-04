@@ -17,3 +17,5 @@ def csvTodf(filename, wantedCols):
     return df
 
 #------------------Vaccines------------------------------------------
+def cleanVaccine(df):
+    df = df.dropna()
