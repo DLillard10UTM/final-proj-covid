@@ -3,13 +3,9 @@
 # Desc: Transforms data for the COVID-19 analysis.
 
 import pandas as pd
+import load
 
 #------------------General for files---------------------------------
-
-#Lets change the csv to a df for easy cleaning
-def csvTodf(url, wantedCols):
-    df = pd.read_csv(url, usecols=wantedCols)
-    return df
 
 def dfToCsv(df,fileName):
     df.to_csv(fileName)
@@ -38,6 +34,8 @@ def cleanCases(df):
     df = df.drop(['County Name', 'State', 'StateFIPS'], axis=1)
     #we only set the id as no val_vars means all but the id.
     df = pd.melt(df, id_vars=['countyFIPS'])
+    #naming the cols right
+    df = df.rename(columns = {'countyFIPS':'fips', 'variable':'date', 'value':'cases'})
     return df
 #------------------Vaccines------------------------------------------
 def cleanVaccine(df):
@@ -50,14 +48,12 @@ def cleanVaccine(df):
 def cleanVaccineHes(df):
     df['fips_code'] = df['fips_code'].apply(lambda x: '{0:0>5}'.format(x))
 
-    df1 = df[['social_vulnerability_index', 'svi_category']]
-    df1 = df1.drop_duplicates()
-    dfToCsv(df1,'maskOrders.csv')
-    df1 = df[['ability_to_handle_a_covid', 'cvac_category']]
-    df1 = df1.drop_duplicates()
-    #function to save df1
-    dfToCsv(df1,'maskOrders.csv')
-    df = df.drop(['svi_catagory','cvac_category'])
+    df = df.rename(columns = {'fips_code':'fips', 'estimated_hesitant':'est_hestitant', 
+                              'estimated_hesitant_or_unsure':'est_hesitant_or_unsure', 
+                              'estimated_strongly_hesitant':'est_strongly_hesitant',
+                              'ability_to_handle_a_covid':'cvac_concern',
+                            })
+
     return df
 
 #-------------------------deaths-------------------------------------
@@ -65,6 +61,7 @@ def cleanDeaths(df):
     df['county_fips_code'] = df['county_fips_code'].apply(lambda x: '{0:0>5}'.format(x))
     df['data_as_of'] = pd.to_datetime(df['data_as_of']).dt.date
     df = df.dropna()
+    df = df.rename(columns = {'county_fips_code':'fips', 'data_as_of':'date', 'covid_death':'deaths'})
     return df
 
 #-------------------------mask mandate by county---------------------
@@ -74,7 +71,7 @@ def cleanMaskMandate(df):
     df1 = df[['order_code', 'face_masks_required_in_public']]
     df1 = df1.drop_duplicates()
     #function to save df1
-    dfToCsv(df1,'maskOrders.csv')
+    load.loadToCSV(df1,'mask_orders_codes', False, index_name='order_code')
     df = df.drop(['face_masks_required_in_public'],axis=1)
     df = df.dropna()
     return df
@@ -86,19 +83,19 @@ def cleanBars(df):
     df1 = df[['order_code', 'action']]
     df1 = df1.drop_duplicates()
     #function to save df1
-    dfToCsv(df1,'barOrders.csv')
+    load.loadToCSV(df1,'bar_orders_codes', False, index_name='order_code')
     df = df.drop(['action'],axis=1)
     df.dropna()
     return df
 
 #-------------------------rests--------------------------------------
 def cleanRests(df):
-    df = joinFIPS(df)
+    df = joinFIPS(df,'fips_state','fips_county')
     #copying codes, descs, and unit into own table.
     df1 = df[['order_code', 'action']]
     df1 = df1.drop_duplicates()
     #function to save df1
-    dfToCsv(df1,'restCodes.csv')
+    load.loadToCSV(df1,'rest_orders_codes', False, index_name='order_code')
     df = df.drop(['action'],axis=1)
     df.dropna()
     return df
@@ -110,7 +107,7 @@ def cleanStayAtHome(df):
     df1 = df[['order_code', 'stay_at_home_order']]
     df1 = df1.drop_duplicates()
     #function to save df1
-    dfToCsv(df1,'homeCodes.csv')
+    load.loadToCSV(df1,'home_orders_codes', False, index_name='order_code')
     df = df.drop(['stay_at_home_order'],axis=1)
     df.dropna()
     return df
