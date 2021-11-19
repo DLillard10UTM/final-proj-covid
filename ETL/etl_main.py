@@ -18,6 +18,7 @@ if(df.empty):
     exit()
 df = transform.cleanCases(df)
 load.loadToCSV(df, 'cases', True,index_name='id')
+load.loadToSQL(df,'cases',True)
 print(len(df))
 
 #-----------------stay at home---------------------------------------
@@ -33,8 +34,8 @@ if(df.empty):
     exit()
 print(len(df))
 df = transform.cleanStayAtHome(df)
-load.loadToCSV(df, 'home_order', True,index_name='id')
-
+load.loadToCSV(df, 'home_order',True,index_name='id')
+load.loadToSQL(df,'home_order',True)
 
 #-----------------restaurants----------------------------------------
 ourURL = "https://data.cdc.gov/resource/azmd-939x.csv"
@@ -47,6 +48,7 @@ if(df.empty):
     exit()
 df = transform.cleanRests(df)
 load.loadToCSV(df, 'rest_orders', True,index_name='id')
+load.loadToSQL(df,'rest_orders',True)
 
 #-----------------bars opening---------------------------------------
 ourURL = "https://data.cdc.gov/resource/9kjw-3miq.csv"
@@ -60,6 +62,7 @@ if(df.empty):
     exit()
 df = transform.cleanBars(df)
 load.loadToCSV(df, 'bar_orders', True,index_name='id')
+load.loadToSQL(df,'bar_orders',True)
 
 #-----------------mask mandates--------------------------------------
 ourURL = "https://data.cdc.gov/resource/62d6-pm5i.csv"
@@ -73,18 +76,20 @@ if(df.empty):
     exit()
 df = transform.cleanMaskMandate(df)
 load.loadToCSV(df, 'mask_mandates', True)
+load.loadToSQL(df,'mask_mandates',True)
 
-#-----------------deaths---------------------------------------------
-ourURL = "https://data.cdc.gov/resource/kn79-hsxy.csv"
-wantedCols = ['data_as_of', 'county_fips_code', 'covid_death']
+#-----------------deaths(over time)----------------------------------
+ourURL = "https://static.usafacts.org/public/data/covid-19/covid_deaths_usafacts.csv?_ga=2.175383649.2141588741.1635868472-1224035268.1634047657"
 
-df = extract.csvTodf(ourURL, wantedCols)
+df = extract.grabCaseData(ourURL)
+
 #check if empty and clean file.
 if(df.empty):
     print("ERROR empty deaths.")
     exit()
 df = transform.cleanDeaths(df)
 load.loadToCSV(df, 'deaths', True,index_name='id')
+load.loadToSQL(df,'deaths',True)
 
 #-----------------vaccine hesitancy----------------------------------
 ourURL = "https://data.cdc.gov/resource/q9mh-h2tw.csv"
@@ -103,6 +108,7 @@ if(df.empty):
 df = transform.cleanVaccineHes(df)
 print(len(df))
 load.loadToCSV(df, 'vaccine_hes', False)
+load.loadToSQL(df,'vaccine_hes',True)
 
 #-----------------vaccinated by county-------------------------------
 ourURL = "https://data.cdc.gov/resource/8xkx-amqh.csv"
@@ -119,5 +125,6 @@ if(df.empty):
     exit()
 df = transform.cleanVaccine(df)
 load.loadToCSV(df, 'vaccinated', True,index_name='id')
+load.loadToSQL(df,'vaccinated',True)
 
 print("ETL job finished")

@@ -3,6 +3,7 @@
 # Desc: Transforms data for the COVID-19 analysis.
 
 import pandas as pd
+import numpy as np
 import load
 
 #------------------General for files---------------------------------
@@ -40,8 +41,11 @@ def cleanCases(df):
 #------------------Vaccines------------------------------------------
 def cleanVaccine(df):
     df = df.dropna()
-    df['date'] = pd.to_datetime(df['date']).dt.date
+    df['date'] = df['date'].str.slice(start=0, stop=10)
     df = df[(df['fips'] != 'UNK')]
+    df['fips'] = df['fips'].astype(int)
+    df = df[(df['fips'] <= 56045)]
+    df = df.dropna()
     return df
 
 #------------------Vaccines hesitancy--------------------------------
@@ -53,15 +57,22 @@ def cleanVaccineHes(df):
                               'estimated_strongly_hesitant':'est_strongly_hesitant',
                               'ability_to_handle_a_covid':'cvac_concern',
                             })
-
+    df = df.dropna()
     return df
 
 #-------------------------deaths-------------------------------------
 def cleanDeaths(df):
-    df['county_fips_code'] = df['county_fips_code'].apply(lambda x: '{0:0>5}'.format(x))
-    df['data_as_of'] = pd.to_datetime(df['data_as_of']).dt.date
-    df = df.dropna()
-    df = df.rename(columns = {'county_fips_code':'fips', 'data_as_of':'date', 'covid_death':'deaths'})
+    #dropping where fips is 0
+    df = df[(df['countyFIPS'] != 0)]
+    df = df.drop(['County Name', 'State', 'StateFIPS'], axis=1)
+    #we only set the id as no val_vars means all but the id.
+    df = pd.melt(df, id_vars=['countyFIPS'])
+    #naming the cols right
+    df = df.rename(columns = {'countyFIPS':'fips', 'variable':'date', 'value':'deaths'})
+    #swapping date and fips due to a DB design.
+    titles = list(df.columns)
+    titles[0],titles[1] = titles[1],titles[0]
+    df = df[titles]
     return df
 
 #-------------------------mask mandate by county---------------------
@@ -71,7 +82,9 @@ def cleanMaskMandate(df):
     df1 = df[['order_code', 'face_masks_required_in_public']]
     df1 = df1.drop_duplicates()
     #function to save df1
+    df1 = df1.dropna()
     load.loadToCSV(df1,'mask_orders_codes', False, index_name='order_code')
+    load.loadToSQL(df1,'mask_orders_codes',False)
     df = df.drop(['face_masks_required_in_public'],axis=1)
     df = df.dropna()
     return df
@@ -83,7 +96,9 @@ def cleanBars(df):
     df1 = df[['order_code', 'action']]
     df1 = df1.drop_duplicates()
     #function to save df1
+    df1 = df1.replace({np.nan:None})
     load.loadToCSV(df1,'bar_orders_codes', False, index_name='order_code')
+    load.loadToSQL(df1,'bar_orders_codes',False)
     df = df.drop(['action'],axis=1)
     df.dropna()
     return df
@@ -95,7 +110,9 @@ def cleanRests(df):
     df1 = df[['order_code', 'action']]
     df1 = df1.drop_duplicates()
     #function to save df1
+    df1 = df1.replace({np.nan:None})
     load.loadToCSV(df1,'rest_orders_codes', False, index_name='order_code')
+    load.loadToSQL(df1,'rest_orders_codes',False)
     df = df.drop(['action'],axis=1)
     df.dropna()
     return df
@@ -106,8 +123,10 @@ def cleanStayAtHome(df):
     #copying codes, descs, and unit into own table.
     df1 = df[['order_code', 'stay_at_home_order']]
     df1 = df1.drop_duplicates()
-    #function to save df1
+    #Dropping artefact where NaN and another one exists.
+    df1 = df1.dropna()
     load.loadToCSV(df1,'home_orders_codes', False, index_name='order_code')
+    load.loadToSQL(df1,'home_orders_codes',False)
     df = df.drop(['stay_at_home_order'],axis=1)
     df.dropna()
     return df

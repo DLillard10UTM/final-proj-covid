@@ -17,7 +17,6 @@ def csvTodf(url, wantedCols):
     appendNum = 1
     url1 = url + '&$offset=' + str(appendNum*50000)
     df1 = pd.read_csv(url1, usecols=wantedCols)
-    print(len(df1))
     while(not df1.empty):
         df = df.append(df1,ignore_index=True)
         appendNum += 1
